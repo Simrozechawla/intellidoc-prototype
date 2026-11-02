@@ -67,3 +67,11 @@ def test_research_paper_counts_figures():
     assert paper.n_figures == 2
     with pytest.raises(ValidationError):
         ResearchPaper(title="Hi", has_abstract=False)
+
+
+def test_misread_date_error_suggests_a_fix_but_does_not_change_data():
+    with pytest.raises(ValidationError) as exc:
+        PanCard.model_validate({"pan_number": "ABCPV1234K", "name": "ASHA VERMA", "dob": "44/03/1995"})
+    message = str(exc.value)
+    assert "did you mean 14/03/1995" in message          # a hint for the reviewer
+    assert "dob" in message                              # the document is still rejected

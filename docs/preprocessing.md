@@ -21,8 +21,13 @@ On `samples/sample_pan_noisy.png` (tilted, blurred, noisy, with a lighting gradi
 | | OCR confidence | Result |
 |---|---|---|
 | Raw image | about 19 | fields missing |
-| Preprocessed | about 95 | all fields extracted and validated |
+| Preprocessed | about 93-95 | PAN, name and father's name read correctly |
+
+The last digit or two can still be misread. On one machine the date of birth came out as
+`44/03/1995`, validation rejected it, and the document went to review with the hint "did you mean
+14/03/1995?". Results on a damaged photo depend on the Tesseract version, which is why a failed
+validation goes to a person instead of being saved.
 
 The automated test `test_preprocessing_rescues_a_degraded_photo` asserts a gain of more than 20
-points. Preprocessing is not always better: on clean scans it can slightly hurt, which is why
+points and that the PAN is extracted. Preprocessing is not always better: on clean scans it can slightly hurt, which is why
 `auto` exists.

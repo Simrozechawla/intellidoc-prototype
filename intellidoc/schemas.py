@@ -61,7 +61,29 @@ def parse_date(value) -> Optional[date]:
             return datetime.strptime(str(value).strip(), fmt).date()
         except ValueError:
             continue
-    raise ValueError(f"unrecognised date format: {value!r}")
+    raise ValueError(f"unrecognised date format: {value!r}{_misread_hint(str(value))}")
+
+
+# Digits OCR commonly mixes up. Used only to SUGGEST a reading to a reviewer, never to change data.
+_LOOKALIKE_DIGITS = {"0": "86", "1": "47", "3": "85", "4": "19", "5": "63", "6": "058", "7": "1", "8": "036", "9": "4"}
+
+
+def _misread_hint(value: str) -> str:
+    """If one misread digit would make a dd/mm/yyyy date valid, say so in the error."""
+    text = value.strip()
+    if not re.fullmatch(r"\d{2}[/-]\d{2}[/-]\d{4}", text):
+        return ""
+    found = []
+    for i, ch in enumerate(text):
+        for repl in _LOOKALIKE_DIGITS.get(ch, ""):
+            candidate = text[:i] + repl + text[i + 1:]
+            try:
+                d = datetime.strptime(candidate, "%d/%m/%Y" if "/" in candidate else "%d-%m-%Y").date()
+            except ValueError:
+                continue
+            if 1900 <= d.year and d <= date.today() and candidate not in found:
+                found.append(candidate)
+    return f" (possible OCR misread; did you mean {' or '.join(found[:3])}?)" if found else ""
 
 
 def _check_birth_date(d: Optional[date]) -> Optional[date]:
