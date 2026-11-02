@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# runtime output (may contain personal data)
+data/
+site/
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.vscode/

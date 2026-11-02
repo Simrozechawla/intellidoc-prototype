@@ -1,0 +1,22 @@
+site_name: IntelliDoc
+site_description: Extract, validate and file structured data from documents.
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Architecture: architecture.md
+  - Validation: validation.md
+  - Classification: classification.md
+  - Preprocessing: preprocessing.md
+  - CLI reference: cli.md
+  - HTTP API: api.md
+  - Limitations: limitations.md
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

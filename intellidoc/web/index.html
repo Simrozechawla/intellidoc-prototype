@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IntelliDoc</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1b2330; --muted: #5d6878; --line: #e2e6ec;
+    --accent: #2f5bea; --accent-soft: #e8eefe;
+    --ok: #17803d; --ok-soft: #e3f4e9; --warn: #a15c07; --warn-soft: #fdf1dc;
+    --bad: #b42318; --bad-soft: #fde8e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --card: #1a202a; --ink: #e8ecf2; --muted: #98a3b3; --line: #2b3441;
+      --accent: #7c9cff; --accent-soft: #232d4a;
+      --ok: #5fd08a; --ok-soft: #173325; --warn: #f0b24f; --warn-soft: #382a10;
+      --bad: #ff8a80; --bad-soft: #3a1b18;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 22px; margin: 0; }
+  header p { margin: 0; color: var(--muted); }
+  a { color: var(--accent); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-top: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 28px; line-height: 1.1; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .stat.ok b { color: var(--ok); } .stat.warn b { color: var(--warn); } .stat.bad b { color: var(--bad); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } .cols { grid-template-columns: 1fr; } }
+  #drop { border: 2px dashed var(--line); border-radius: 10px; padding: 28px 12px; text-align: center;
+          color: var(--muted); cursor: pointer; transition: .15s; }
+  #drop.over, #drop:hover, #drop:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  select, button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+                   background: var(--card); color: var(--ink); }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .steps { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .step { flex: 1 1 90px; text-align: center; font-size: 12px; padding: 6px 4px; border-radius: 8px;
+          background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+  .step.done { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+  .step.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .step.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .step.hold { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  ol#log { list-style: none; margin: 0; padding: 0; }
+  #log li { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  #log li:first-child { border-top: 0; }
+  #log .n { font-weight: 600; } #log .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); font-size: 14px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .badge.integrated { background: var(--ok-soft); color: var(--ok); }
+  .badge.review { background: var(--warn-soft); color: var(--warn); }
+  .badge.failed { background: var(--bad-soft); color: var(--bad); }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  td { padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; font-size: 14px; word-break: break-word; }
+  td:first-child { color: var(--muted); width: 36%; }
+  ul.msgs { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
+  ul.msgs.err li { color: var(--bad); } ul.msgs.warn li { color: var(--warn); }
+  details { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  pre { white-space: pre-wrap; background: var(--bg); padding: 10px; border-radius: 8px; font-size: 12px; max-height: 180px; overflow: auto; }
+  #recent div { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  #recent div:first-child { border-top: 0; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>IntelliDoc</h1>
+    <p>Upload a document. Watch it move through the pipeline.</p>
+  </header>
+
+  <section class="stats" aria-label="Totals">
+    <div class="stat"><b id="s-total">0</b><span>Processed</span></div>
+    <div class="stat ok"><b id="s-integrated">0</b><span>Integrated</span></div>
+    <div class="stat warn"><b id="s-review">0</b><span>Needs review</span></div>
+    <div class="stat bad"><b id="s-failed">0</b><span>Failed</span></div>
+  </section>
+
+  <div class="cols">
+    <section class="card">
+      <h2>1 · Upload</h2>
+      <div id="drop" tabindex="0" role="button" aria-label="Choose a file to upload">
+        Drop a PNG, JPG, PDF or TXT here, or click to choose
+      </div>
+      <input id="file" type="file" hidden accept=".png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.pdf,.txt">
+      <div class="row">
+        <label for="pre">Image clean-up</label>
+        <select id="pre">
+          <option value="auto">auto (try both, keep the better read)</option>
+          <option value="on">on</option>
+          <option value="off">off</option>
+        </select>
+      </div>
+      <div class="row" id="samples"><span class="empty">Loading samples…</span></div>
+      <p class="note">Sample files are synthetic. Don't upload anyone's real ID unless you have the right to.</p>
+    </section>
+
+    <section class="card">
+      <h2>2 · Pipeline</h2>
+      <div class="steps" id="steps"></div>
+      <ol id="log"><li class="empty" style="display:block">Nothing running yet.</li></ol>
+    </section>
+  </div>
+
+  <section class="card" id="result-card" hidden>
+    <h2>3 · Result</h2>
+    <div id="result"></div>
+  </section>
+
+  <section class="card">
+    <h2>Recent documents</h2>
+    <div id="recent"><span class="empty">None yet.</span></div>
+  </section>
+</div>
+
+<script>
+const STAGES = [
+  ["Upload", []], ["Ingestion", ["ingest"]], ["Classification", ["classify"]],
+  ["Extraction", ["process"]], ["Validation", ["process"]], ["Integration", ["integrate", "human_review"]],
+];
+const $ = id => document.getElementById(id);
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined && text !== null) e.textContent = text;   // textContent: document text is never parsed as HTML
+  if (cls) e.className = cls;
+  return e;
+}
+
+function renderSteps(state) {            // state: {reached: Set, bad, hold}
+  const box = $("steps"); box.replaceChildren();
+  STAGES.forEach(([name, nodes], i) => {
+    const s = el("div", name, "step");
+    if (i === 0 && state.started) s.classList.add("done");
+    else if (nodes.some(n => state.reached.has(n))) s.classList.add("done");
+    if (state.active === name) { s.classList.remove("done"); s.classList.add("active"); }
+    if (state.badStage === name) { s.classList.remove("done", "active"); s.classList.add("bad"); }
+    if (state.holdStage === name) { s.classList.remove("done", "active"); s.classList.add("hold"); }
+    box.appendChild(s);
+  });
+}
+
+async function loadStats() {
+  try {
+    const s = await (await fetch("/api/stats")).json();
+    for (const k of ["total", "integrated", "review", "failed"]) $("s-" + k).textContent = s[k];
+    const box = $("recent"); box.replaceChildren();
+    if (!s.recent.length) box.appendChild(el("span", "None yet.", "empty"));
+    s.recent.forEach(r => {
+      const d = el("div"); d.append(el("span", r.file), el("span", r.status, "badge " + r.status));
+      box.appendChild(d);
+    });
+  } catch (e) { /* dashboard still works without stats */ }
+}
+
+function showResult(r) {
+  $("result-card").hidden = false;
+  const box = $("result"); box.replaceChildren();
+  const head = el("div");
+  head.append(el("span", r.status, "badge " + r.status), " ",
+              el("span", r.doc_type ? `${r.doc_type} · confidence ${r.doc_type_confidence}` : "type unknown"));
+  box.appendChild(head);
+
+  const rows = Object.entries(r.extracted_data || {});
+  if (rows.length) {
+    const t = el("table");
+    rows.forEach(([k, v]) => {
+      const tr = el("tr");
+      const shown = (v !== null && typeof v === "object") ? JSON.stringify(v) : String(v);
+      tr.append(el("td", k.replaceAll("_", " ")), el("td", shown));
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
+  }
+  if (r.errors.length) { const u = el("ul", null, "msgs err"); r.errors.forEach(m => u.appendChild(el("li", m))); box.appendChild(u); }
+  if (r.warnings.length) { const u = el("ul", null, "msgs warn"); r.warnings.forEach(m => u.appendChild(el("li", m))); box.appendChild(u); }
+
+  const log = (r.metadata.attempt_log || []);
+  if (log.length) {
+    const d = el("details"); d.appendChild(el("summary", `OCR attempts (${log.length})`));
+    const t = el("table");
+    log.forEach((a, i) => {
+      const tr = el("tr");
+      tr.append(el("td", "attempt " + (i + 1)),
+                el("td", `psm ${a.psm}, preprocessing ${a.preprocessing ? "on" : "off"}, OCR confidence ${a.ocr_confidence}, ` + (a.passed ? "passed" : "failed: " + (a.issues || []).join("; "))));
+      t.appendChild(tr);
+    });
+    d.appendChild(t); box.appendChild(d);
+  }
+  if (r.text_preview) {
+    const d = el("details"); d.appendChild(el("summary", "Text the pipeline read"));
+    d.appendChild(el("pre", r.text_preview)); box.appendChild(d);
+  }
+}
+
+async function stream(response) {
+  const log = $("log"); log.replaceChildren();
+  const state = { started: true, reached: new Set(), active: "Ingestion" };
+  renderSteps(state);
+  $("result-card").hidden = true;
+  if (!response.ok) {
+    let msg = response.statusText;
+    try { msg = (await response.json()).detail || msg; } catch (e) {}
+    log.appendChild(el("li", msg, "empty")); log.firstChild.style.display = "block";
+    state.active = null; state.badStage = "Ingestion"; renderSteps(state); return;
+  }
+  const reader = response.body.getReader(); const dec = new TextDecoder(); let buf = "";
+  const handle = ev => {
+    if (ev.event === "node") {
+      state.reached.add(ev.node);
+      const li = el("li"); li.append(el("span", ev.node, "n"), el("span", ev.summary), el("span", ev.ms + " ms", "t"));
+      log.appendChild(li);
+      const next = {ingest: "Classification", classify: "Extraction", process: "Integration"}[ev.node];
+      state.active = next || null;
+      if (ev.node === "ingest") state.badStage = null;               // a retry starts clean
+      if (ev.node === "process" && /issue/.test(ev.summary)) { state.badStage = "Validation"; state.active = null; }
+      if (ev.node === "human_review") state.holdStage = "Integration";
+      if (ev.node === "ingest" && ev.status === "failed") { state.badStage = "Ingestion"; state.active = null; }
+      renderSteps(state);
+    } else if (ev.event === "final") {
+      state.active = null; renderSteps(state); showResult(ev.result);
+    } else if (ev.event === "error") {
+      const li = el("li", ev.message, "empty"); li.style.display = "block"; log.appendChild(li);
+      state.active = null; state.badStage = "Extraction"; renderSteps(state);
+    }
+  };
+  while (true) {
+    const {value, done} = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, {stream: true});
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (line) handle(JSON.parse(line));
+    }
+  }
+  loadStats();
+}
+
+function busy(on) { document.querySelectorAll("button").forEach(b => b.disabled = on); }
+
+async function uploadFile(file) {
+  busy(true);
+  try {
+    const fd = new FormData(); fd.append("file", file);
+    await stream(await fetch("/api/process?preprocess=" + $("pre").value, {method: "POST", body: fd}));
+  } finally { busy(false); }
+}
+
+async function runSample(name) {
+  busy(true);
+  try {
+    const url = `/api/process-sample?name=${encodeURIComponent(name)}&preprocess=${$("pre").value}`;
+    await stream(await fetch(url, {method: "POST"}));
+  } finally { busy(false); }
+}
+
+const drop = $("drop"), input = $("file");
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
+input.onchange = () => { if (input.files[0]) uploadFile(input.files[0]); input.value = ""; };
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); });
+
+(async () => {
+  renderSteps({reached: new Set()});
+  loadStats();
+  try {
+    const names = await (await fetch("/api/samples")).json();
+    const box = $("samples"); box.replaceChildren();
+    if (!names.length) box.appendChild(el("span", "No samples found. Run: python make_samples.py", "empty"));
+    names.forEach(n => { const b = el("button", n.replace(/^sample_/, "").replace(/\.[^.]+$/, "").replaceAll("_", " ")); b.title = n; b.onclick = () => runSample(n); box.appendChild(b); });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

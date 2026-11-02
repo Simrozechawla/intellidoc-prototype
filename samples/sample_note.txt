@@ -1,0 +1,1 @@
+Team sync notes. We agreed to move the demo to Wednesday and review the pipeline diagram together. Action items: update the schema, rerun tests.
